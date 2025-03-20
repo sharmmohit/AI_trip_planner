@@ -1,43 +1,104 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+// src/components/Landing.jsx
+// src/components/Landing.jsx
+import '../index.css';
+import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import PreferencesForm from './PreferencesForm';
+import logo from './logo.png';
+import { auth } from '../firebase'; // Import auth from firebase
+import { signOut } from 'firebase/auth'; // Import signOut
 
-const Landing = () => {
-  const navigate = useNavigate();
+function Landing() {
+    const [showPreferencesForm, setShowPreferencesForm] = useState(false);
+    const [generatedPlan, setGeneratedPlan] = useState(null);
+    const [user, setUser] = useState(null); // State to store user info
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Navbar */}
-      <nav className="w-full flex justify-between items-center px-6 py-4 bg-white shadow-md fixed top-0 left-0 right-0 z-10">
-        <div className="text-xl font-bold flex items-center space-x-2">
-          <span className="bg-blue-600 text-white px-2 py-1 rounded">AI</span>
-          <span className="text-gray-700">Travel Partner</span>
+    useEffect(() => {
+        // Listen for authentication state changes
+        const unsubscribe = auth.onAuthStateChanged((authUser) => {
+            if (authUser) {
+                setUser(authUser); // User is signed in
+            } else {
+                setUser(null); // User is signed out
+            }
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
+
+    const handleStartPlanningClick = () => {
+        setShowPreferencesForm(true);
+    };
+
+    const handleGenerateTrip = (preferences) => {
+        console.log('User preferences:', preferences);
+        const simulatedPlan = `Generated trip plan for ${preferences.destination} for ${preferences.days} days with a ${preferences.budget} budget, traveling with ${preferences.travelWith}.`;
+        setGeneratedPlan(simulatedPlan);
+        setShowPreferencesForm(false);
+    };
+
+    const handleLogout = () => {
+        signOut(auth)
+            .then(() => {
+                console.log('User signed out');
+            })
+            .catch((error) => {
+                console.error('Error signing out:', error);
+            });
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-100 to-blue-50">
+            <header className="flex justify-between items-center p-4 w-full">
+                <div className="flex items-center">
+                    <img src={logo} alt="Plan Trip Logo" className="h-20 mr-4" />
+                </div>
+                {user ? (
+                    <button
+                        className="bg-black hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+                        onClick={handleLogout}
+                    >
+                        Logout
+                    </button>
+                ) : (
+                    <Link to="/signin" className="bg-black hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300">
+                        Sign In
+                    </Link>
+                )}
+            </header>
+
+            <main className="flex-grow flex flex-col justify-center items-center text-center px-4 md:px-8 lg:px-16">
+                {showPreferencesForm ? (
+                    <div className="w-full max-w-2xl">
+                        <PreferencesForm onGenerate={handleGenerateTrip} />
+                    </div>
+                ) : generatedPlan ? (
+                    <div className="p-8">
+                        <h2 className="text-3xl font-semibold mb-4 text-gray-800">Your Trip Plan</h2>
+                        <p className="text-lg text-gray-700">{generatedPlan}</p>
+                    </div>
+                ) : (
+                    <div className="max-w-3xl">
+                        <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 leading-tight">
+                            Plan Your Trip with AI
+                            <br />
+                            Smart Travel Made Simple
+                        </h1>
+                        <p className="text-lg md:text-xl mb-10 text-gray-700">
+                            Let AI create your perfect travel itinerary based on your interests and budget.
+                        </p>
+                        <button
+                            className="bg-black hover:bg-gray-800 text-white font-semibold py-3 px-8 rounded-full text-lg transition-colors duration-300"
+                            onClick={handleStartPlanningClick}
+                        >
+                            Start Planning
+                        </button>
+                    </div>
+                )}
+            </main>
         </div>
-        <Link to="/signin" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Sign In
-        </Link>
-      </nav>
-
-      {/* Hero Section */}
-      <div className="flex flex-col items-center justify-center flex-1 text-center mt-24 px-4">
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
-          Plan Your Trip with AI
-        </h1>
-        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-700 mt-2">
-          Smart Travel Made Simple
-        </h2>
-        <p className="text-gray-600 mt-4 max-w-xl">
-          Let AI create your perfect travel itinerary based on your interests and budget.
-        </p>
-        {/* Start Planning Button with Navigation */}
-        <button 
-          onClick={() => navigate("/preferences")} 
-          className="mt-6 bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800"
-        >
-          Start Planning
-        </button>
-      </div>
-    </div>
-  );
-};
+    );
+}
 
 export default Landing;
