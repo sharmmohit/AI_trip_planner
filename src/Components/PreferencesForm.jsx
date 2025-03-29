@@ -3,19 +3,21 @@ import '../index.css';
 import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-function PreferencesForm({ onGenerate }) {
+function PreferencesForm() {
     const [destination, setDestination] = useState(null);
     const [days, setDays] = useState('');
     const [budget, setBudget] = useState('');
     const [travelWith, setTravelWith] = useState('');
     const [destinationOptions, setDestinationOptions] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchDestinations = async () => {
             try {
                 const response = await axios.get('https://restcountries.com/v3.1/all');
-                const options = response.data.map(country => ({
+                const options = response.data.map((country) => ({
                     value: country.name.common,
                     label: country.name.common,
                 }));
@@ -44,14 +46,19 @@ function PreferencesForm({ onGenerate }) {
         setTravelWith(value);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onGenerate({
-            destination: destination?.value,
-            days,
-            budget,
-            travelWith,
-        });
+        try {
+            const response = await axios.post('http://localhost:5000/generate-trip', { // Updated URL
+                destination: destination?.value,
+                days,
+                budget,
+                travelWith,
+            });
+            navigate('/trip-suggestion', { state: response.data });
+        } catch (error) {
+            console.error('Error generating trip:', error);
+        }
     };
 
     return (
