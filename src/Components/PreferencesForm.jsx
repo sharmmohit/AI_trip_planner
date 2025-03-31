@@ -4,34 +4,60 @@ import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Autosuggest from 'react-autosuggest';
 
 function PreferencesForm() {
-    const [destination, setDestination] = useState(null);
+    const [destination, setDestination] = useState('');
     const [days, setDays] = useState('');
     const [budget, setBudget] = useState('');
     const [travelWith, setTravelWith] = useState('');
-    const [destinationOptions, setDestinationOptions] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
     const navigate = useNavigate();
+    const OPENCAGE_API_KEY = 'bd4b8faf586f405191720e5ce3956999'; // Your OpenCage API key
 
-    useEffect(() => {
-        const fetchDestinations = async () => {
-            try {
-                const response = await axios.get('https://restcountries.com/v3.1/all');
-                const options = response.data.map((country) => ({
-                    value: country.name.common,
-                    label: country.name.common,
-                }));
-                setDestinationOptions(options);
-            } catch (error) {
-                console.error('Error fetching destinations:', error);
-            }
-        };
+    const getSuggestions = async (value) => {
+        const inputValue = value.trim().toLowerCase();
+        const inputLength = inputValue.length;
 
-        fetchDestinations();
-    }, []);
+        if (inputLength < 2) {
+            return [];
+        }
 
-    const handleDestinationChange = (selectedOption) => {
-        setDestination(selectedOption);
+        try {
+            const response = await axios.get(
+                `https://api.opencagedata.com/geocode/v1/json?q=${inputValue}&key=${OPENCAGE_API_KEY}`
+            );
+            return response.data.results.map(result => ({ name: result.formatted }));
+        } catch (error) {
+            console.error('Error fetching location suggestions:', error);
+            return [];
+        }
+    };
+
+    const getSuggestionValue = (suggestion) => suggestion.name;
+
+    const renderSuggestion = (suggestion) => (
+        <div>
+            {suggestion.name}
+        </div>
+    );
+
+    const onSuggestionsFetchRequested = ({ value }) => {
+        getSuggestions(value).then(fetchedSuggestions => setSuggestions(fetchedSuggestions));
+    };
+
+    const onSuggestionsClearRequested = () => {
+        setSuggestions([]);
+    };
+
+    const onSuggestionSelected = (event, { suggestion }) => {
+        setDestination(suggestion.name);
+    };
+
+    const inputProps = {
+        placeholder: 'Enter City, State, Country',
+        value: destination,
+        onChange: (event, { newValue }) => setDestination(newValue),
     };
 
     const handleDaysChange = (e) => {
@@ -50,7 +76,7 @@ function PreferencesForm() {
         e.preventDefault();
         try {
             const response = await axios.post('http://localhost:5000/generate-trip', { // Updated URL
-                destination: destination?.value,
+                destination: destination,
                 days,
                 budget,
                 travelWith,
@@ -68,12 +94,14 @@ function PreferencesForm() {
 
             <div className="mb-4 text-left">
                 <label className="block text-sm font-medium text-gray-700">What is your destination of choice?</label>
-                <Select
-                    value={destination}
-                    onChange={handleDestinationChange}
-                    options={destinationOptions}
-                    placeholder="Select..."
-                    className="mt-1"
+                <Autosuggest
+                    suggestions={suggestions}
+                    onSuggestionsFetchRequested={onSuggestionsFetchRequested}
+                    onSuggestionsClearRequested={onSuggestionsClearRequested}
+                    getSuggestionValue={getSuggestionValue}
+                    renderSuggestion={renderSuggestion}
+                    inputProps={inputProps}
+                    onSuggestionSelected={onSuggestionSelected}
                 />
             </div>
 
@@ -81,10 +109,11 @@ function PreferencesForm() {
                 <label className="block text-sm font-medium text-gray-700">How many days are you planning your trip?</label>
                 <input
                     type="text"
+                    id="days"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                     value={days}
                     onChange={handleDaysChange}
                     placeholder="Ex. 3"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                 />
             </div>
 
