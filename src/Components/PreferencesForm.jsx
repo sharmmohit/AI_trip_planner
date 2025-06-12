@@ -1,6 +1,5 @@
-// src/components/PreferencesForm.jsx
 import '../index.css';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -8,193 +7,144 @@ import Autosuggest from 'react-autosuggest';
 
 function PreferencesForm() {
     const [destination, setDestination] = useState('');
+    const [suggestions, setSuggestions] = useState([]);
     const [days, setDays] = useState('');
     const [budget, setBudget] = useState('');
     const [travelWith, setTravelWith] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const OPENCAGE_API_KEY = 'bd4b8faf586f405191720e5ce3956999'; // Your OpenCage API key
+
+    const GEODB_API_KEY = 'bc4914961fmsh2906570d84a8ee3p1b1782jsn42832c37a4ba'; // Replace with your GeoDB Cities API Key
+    const GEODB_HOST = 'wft-geo-db.p.rapidapi.com';
 
     const getSuggestions = async (value) => {
-        const inputValue = value.trim().toLowerCase();
-        const inputLength = inputValue.length;
-
-        if (inputLength < 2) {
-            return [];
-        }
+        if (value.length < 2) return [];
 
         try {
             const response = await axios.get(
-                `https://api.opencagedata.com/geocode/v1/json?q=${inputValue}&key=${OPENCAGE_API_KEY}`
+                `https://${GEODB_HOST}/v1/geo/cities`,
+                {
+                    headers: {
+                        'X-RapidAPI-Key': GEODB_API_KEY,
+                        'X-RapidAPI-Host': GEODB_HOST
+                    },
+                    params: {
+                        namePrefix: value,
+                        sort: '-population',
+                        limit: 5
+                    }
+                }
             );
-            return response.data.results.map(result => ({ name: result.formatted }));
+            return response.data.data.map(city => ({
+                name: `${city.city}, ${city.countryCode}`
+            }));
         } catch (error) {
-            console.error('Error fetching location suggestions:', error);
+            console.error("GeoDB API Error:", error);
             return [];
         }
     };
 
-    const getSuggestionValue = (suggestion) => suggestion.name;
-
-    const renderSuggestion = (suggestion) => (
-        <div>
-            {suggestion.name}
-        </div>
-    );
-
-    const onSuggestionsFetchRequested = ({ value }) => {
-        getSuggestions(value).then(fetchedSuggestions => setSuggestions(fetchedSuggestions));
+    const onSuggestionsFetchRequested = async ({ value }) => {
+        const results = await getSuggestions(value);
+        setSuggestions(results);
     };
 
-    const onSuggestionsClearRequested = () => {
-        setSuggestions([]);
-    };
-
-    const onSuggestionSelected = (event, { suggestion }) => {
-        setDestination(suggestion.name);
-    };
+    const getSuggestionValue = suggestion => suggestion.name;
+    const renderSuggestion = suggestion => <div>{suggestion.name}</div>;
 
     const inputProps = {
-        placeholder: 'Enter City, State, Country',
+        placeholder: 'Enter Destination City',
         value: destination,
-        onChange: (event, { newValue }) => setDestination(newValue),
-    };
-
-    const handleDaysChange = (e) => {
-        setDays(e.target.value);
-    };
-
-    const handleBudgetChange = (value) => {
-        setBudget(value);
-    };
-
-    const handleTravelWithChange = (value) => {
-        setTravelWith(value);
+        onChange: (_, { newValue }) => setDestination(newValue),
+        className: 'w-full border border-gray-300 p-2 rounded'
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/generate-trip', { // Updated URL
-                destination: destination,
+            const res = await axios.post('http://localhost:5000/generate-trip', {
+                destination,
                 days,
                 budget,
                 travelWith,
             });
-            navigate('/trip-suggestion', { state: response.data });
+            navigate('/trip-suggestion', { state: res.data });
         } catch (error) {
-            console.error('Error generating trip:', error);
+            console.error('Error submitting form:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-8 w-full max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-4 text-left">Tell us your travel preferences <span role="img" aria-label="palm-tree">🌴</span> <span role="img" aria-label="airplane">✈️</span></h2>
-            <p className="mb-6 text-left">Just provide some basic information, and our trip planner will generate a customized itinerary based on your preferences.</p>
+        <form onSubmit={handleSubmit} className="p-8 w-full max-w-2xl mx-auto bg-white shadow-md rounded-md">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">🌍 Plan Your Adventure</h2>
+            <p className="mb-6 text-gray-600">Fill out the form to get a custom travel plan based on your interests.</p>
 
-            <div className="mb-4 text-left">
-                <label className="block text-sm font-medium text-gray-700">What is your destination of choice?</label>
+            <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-1">Destination</label>
                 <Autosuggest
                     suggestions={suggestions}
                     onSuggestionsFetchRequested={onSuggestionsFetchRequested}
-                    onSuggestionsClearRequested={onSuggestionsClearRequested}
+                    onSuggestionsClearRequested={() => setSuggestions([])}
                     getSuggestionValue={getSuggestionValue}
                     renderSuggestion={renderSuggestion}
                     inputProps={inputProps}
-                    onSuggestionSelected={onSuggestionSelected}
+                    onSuggestionSelected={(e, { suggestion }) => setDestination(suggestion.name)}
                 />
             </div>
 
-            <div className="mb-4 text-left">
-                <label className="block text-sm font-medium text-gray-700">How many days are you planning your trip?</label>
+            <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-1">Trip Duration (Days)</label>
                 <input
-                    type="text"
-                    id="days"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    type="number"
+                    className="w-full p-2 border border-gray-300 rounded"
                     value={days}
-                    onChange={handleDaysChange}
-                    placeholder="Ex. 3"
+                    onChange={e => setDays(e.target.value)}
+                    placeholder="e.g. 5"
                 />
             </div>
 
-            <div className="mb-4 text-left">
-                <label className="block text-sm font-medium text-gray-700">What is Your Budget?</label>
-                <div className="flex justify-between mt-2">
-                    <button
-                        type="button"
-                        onClick={() => handleBudgetChange('Cheap')}
-                        className={`p-4 rounded-md border ${budget === 'Cheap' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="money-bag">💵</span>
-                        <span className="text-xs">Cheap</span>
-                        <span className="text-xs">Few or no frills</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleBudgetChange('Moderate')}
-                        className={`p-4 rounded-md border ${budget === 'Moderate' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="money-with-wings">💸</span>
-                        <span className="text-xs">Moderate</span>
-                        <span className="text-xs">Keep cost in the average side</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleBudgetChange('Luxury')}
-                        className={`p-4 rounded-md border ${budget === 'Luxury' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="money-bag">💰</span>
-                        <span className="text-xs">Luxury</span>
-                        <span className="text-xs">Don't worry about cost</span>
-                    </button>
+            <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-1">Budget</label>
+                <div className="grid grid-cols-3 gap-2">
+                    {['Cheap', 'Moderate', 'Luxury'].map(option => (
+                        <button
+                            type="button"
+                            key={option}
+                            onClick={() => setBudget(option)}
+                            className={`p-3 border rounded ${budget === option ? 'bg-blue-100 border-blue-500' : 'border-gray-300'} hover:border-blue-400`}
+                        >
+                            {option}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <div className="mb-4 text-left">
-                <label className="block text-sm font-medium text-gray-700">Who do you plan on traveling with on your next adventure?</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                    <button
-                        type="button"
-                        onClick={() => handleTravelWithChange('Just Me')}
-                        className={`p-4 rounded-md border ${travelWith === 'Just Me' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="person">👤👤</span>
-                        <span className="text-xs">Just Me</span>
-                        <span className="text-xs">Solo travels in exploration</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleTravelWithChange('A Couple')}
-                        className={`p-4 rounded-md border ${travelWith === 'A Couple' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="couple">👩‍❤️‍👨</span>
-                        <span className="text-xs">A Couple</span>
-                        <span className="text-xs">Romantic getaway</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleTravelWithChange('Family')}
-                        className={`p-4 rounded-md border ${travelWith === 'Family' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="family">👪</span>
-                        <span className="text-xs">Family</span>
-                        <span className="text-xs">A week of fun feeling ady</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleTravelWithChange('Friends')}
-                        className={`p-4 rounded-md border ${travelWith === 'Friends' ? 'border-blue-500 bg-blue-100' : 'border-gray-300'} flex flex-col items-center`}
-                    >
-                        <span role="img" aria-label="friends">👯‍♂️</span>
-                        <span className="text-xs">Friends</span>
-                        <span className="text-xs">A bunch of all thrill seekers</span>
-                    </button>
+            <div className="mb-6">
+                <label className="block text-gray-700 font-medium mb-1">Traveling With</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {['Just Me', 'A Couple', 'Family', 'Friends'].map(option => (
+                        <button
+                            type="button"
+                            key={option}
+                            onClick={() => setTravelWith(option)}
+                            className={`p-3 border rounded ${travelWith === option ? 'bg-green-100 border-green-500' : 'border-gray-300'} hover:border-green-400`}
+                        >
+                            {option}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             <div className="text-center">
-                <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
-                    Generate Trip
+                <button
+                    type="submit"
+                    className={`px-6 py-2 rounded-full text-white font-semibold transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+                    disabled={loading}
+                >
+                    {loading ? 'Generating Trip...' : 'Generate Trip'}
                 </button>
             </div>
         </form>
