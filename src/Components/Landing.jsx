@@ -1,15 +1,17 @@
 import '../index.css';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PreferencesForm from './PreferencesForm';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { FaRobot, FaMapMarkedAlt, FaPlaneDeparture } from 'react-icons/fa';
+import { FaRobot, FaMapMarkedAlt, FaPlaneDeparture, FaUserCircle, FaPlus, FaHistory, FaSignOutAlt } from 'react-icons/fa';
 
 function Landing() {
     const [showPreferencesForm, setShowPreferencesForm] = useState(false);
     const [generatedPlan, setGeneratedPlan] = useState(null);
     const [user, setUser] = useState(null);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const dropdownRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,11 +21,24 @@ function Landing() {
         return () => unsubscribe();
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowProfileDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     const handleStartPlanningClick = () => {
         if (!user) {
-            navigate('/signup'); // Redirect to Sign Up if not signed in
+            navigate('/signup');
         } else {
-            setShowPreferencesForm(true); // Show planning form
+            setShowPreferencesForm(true);
         }
     };
 
@@ -35,23 +50,33 @@ function Landing() {
 
     const handleLogout = () => {
         signOut(auth)
-            .then(() => console.log('User signed out'))
+            .then(() => {
+                setShowProfileDropdown(false);
+                navigate('/');
+            })
             .catch((error) => console.error('Error signing out:', error));
     };
 
-    // Custom Logo
+    const handleCreateTrip = () => {
+        setShowProfileDropdown(false);
+        setShowPreferencesForm(true);
+    };
+
+    const handleTripHistory = () => {
+        setShowProfileDropdown(false);
+        // Navigate to trip history page when implemented
+        alert('Trip history feature coming soon!');
+    };
+
+    // Modern Minimalist Logo
     const PlanTripLogo = () => (
-        <svg className="h-12 w-auto" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 20V40H40V20H20Z" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="2"/>
-            <path d="M20 20L30 10L40 20" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="2"/>
-            <path d="M25 25V35" stroke="white" strokeWidth="2"/>
-            <path d="M35 25V35" stroke="white" strokeWidth="2"/>
-            <path d="M60 30L80 30" stroke="#1D4ED8" strokeWidth="3" strokeLinecap="round"/>
-            <path d="M75 25L80 30L75 35" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="2"/>
-            <path d="M65 25L60 30L65 35" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="2"/>
-            <path d="M70 20L80 30L70 40" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="2"/>
-            <text x="90" y="35" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" fill="#1E3A8A">PlanTrip</text>
-        </svg>
+        <div className="flex items-center">
+            <div className="bg-blue-600 text-white font-bold rounded-lg w-10 h-10 flex items-center justify-center">
+                PT
+            </div>
+            <span className="mx-3 h-6 w-px bg-blue-400"></span>
+            <span className="text-xl font-bold text-gray-800">PlanTrip</span>
+        </div>
     );
 
     return (
@@ -65,20 +90,57 @@ function Landing() {
 
                     <div className="flex items-center space-x-4">
                         {user ? (
-                            <>
+                            <div className="relative" ref={dropdownRef}>
                                 <button
-                                    className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
-                                    onClick={handleLogout}
+                                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                                    className="flex items-center space-x-2 focus:outline-none"
                                 >
-                                    Logout
+                                    {user.photoURL ? (
+                                        <img 
+                                            src={user.photoURL} 
+                                            alt="Profile" 
+                                            className="w-8 h-8 rounded-full object-cover border-2 border-blue-200"
+                                        />
+                                    ) : (
+                                        <FaUserCircle className="text-2xl text-blue-600" />
+                                    )}
                                 </button>
-                                <Link
-                                    to="/dashboard"
-                                    className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-full shadow-sm transition-all"
-                                >
-                                    Dashboard
-                                </Link>
-                            </>
+
+                                {showProfileDropdown && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-200"
+                                    >
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-sm font-medium text-gray-900">{user.displayName || 'User'}</p>
+                                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                        </div>
+                                        <button
+                                            onClick={handleCreateTrip}
+                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                                        >
+                                            <FaPlus className="mr-3 text-blue-500" />
+                                            Create Trip
+                                        </button>
+                                        <button
+                                            onClick={handleTripHistory}
+                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                                        >
+                                            <FaHistory className="mr-3 text-blue-500" />
+                                            Trip History
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-t border-gray-100"
+                                        >
+                                            <FaSignOutAlt className="mr-3 text-red-500" />
+                                            Logout
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </div>
                         ) : (
                             <>
                                 <Link
@@ -99,7 +161,7 @@ function Landing() {
                 </div>
             </header>
 
-            {/* Main */}
+            {/* Main Content */}
             <main className="flex-grow pt-16">
                 {/* Hero Section */}
                 <section className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center text-center px-4 md:px-8 lg:px-16 py-20">
