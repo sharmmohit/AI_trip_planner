@@ -1,6 +1,6 @@
 import '../index.css';
 import { useState } from 'react';
-import Select from 'react-select';
+import { FaCalendarAlt, FaMoneyBillWave, FaUsers, FaPlane, FaSpinner } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Autosuggest from 'react-autosuggest';
@@ -14,7 +14,7 @@ function PreferencesForm() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const GEODB_API_KEY = 'bc4914961fmsh2906570d84a8ee3p1b1782jsn42832c37a4ba'; // Replace with your GeoDB Cities API Key
+    const GEODB_API_KEY = 'bc4914961fmsh2906570d84a8ee3p1b1782jsn42832c37a4ba';
     const GEODB_HOST = 'wft-geo-db.p.rapidapi.com';
 
     const getSuggestions = async (value) => {
@@ -50,13 +50,13 @@ function PreferencesForm() {
     };
 
     const getSuggestionValue = suggestion => suggestion.name;
-    const renderSuggestion = suggestion => <div>{suggestion.name}</div>;
+    const renderSuggestion = suggestion => <div className="p-2 hover:bg-blue-50">{suggestion.name}</div>;
 
     const inputProps = {
-        placeholder: 'Enter Destination City',
+        placeholder: '🌍 Where are you going?',
         value: destination,
         onChange: (_, { newValue }) => setDestination(newValue),
-        className: 'w-full border border-gray-300 p-2 rounded'
+        className: 'w-full p-3 pl-10 border-0 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none'
     };
 
     const handleSubmit = async (e) => {
@@ -77,77 +77,136 @@ function PreferencesForm() {
         }
     };
 
+    const budgetOptions = [
+        { value: 'Cheap', label: '💰 Budget', emoji: '💰' },
+        { value: 'Moderate', label: '💵 Moderate', emoji: '💵' },
+        { value: 'Luxury', label: '💎 Luxury', emoji: '💎' }
+    ];
+
+    const travelWithOptions = [
+        { value: 'Just Me', label: '👤 Solo', emoji: '👤' },
+        { value: 'A Couple', label: '👫 Couple', emoji: '👫' },
+        { value: 'Family', label: '👪 Family', emoji: '👪' },
+        { value: 'Friends', label: '👬 Friends', emoji: '👬' }
+    ];
+
     return (
-        <form onSubmit={handleSubmit} className="p-8 w-full max-w-2xl mx-auto bg-white shadow-md rounded-md">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">🌍 Plan Your Adventure</h2>
-            <p className="mb-6 text-gray-600">Fill out the form to get a custom travel plan based on your interests.</p>
+        <div className="p-1 rounded-xl bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
+            <form onSubmit={handleSubmit} className="p-8 w-full max-w-2xl mx-auto bg-white rounded-lg shadow-xl">
+                <h2 className="text-3xl font-bold mb-2 text-gray-800">✈️ Plan Your Perfect Trip</h2>
+                <p className="mb-6 text-gray-600 text-lg">Tell us about your dream vacation and we'll craft the perfect itinerary!</p>
 
-            <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-1">Destination</label>
-                <Autosuggest
-                    suggestions={suggestions}
-                    onSuggestionsFetchRequested={onSuggestionsFetchRequested}
-                    onSuggestionsClearRequested={() => setSuggestions([])}
-                    getSuggestionValue={getSuggestionValue}
-                    renderSuggestion={renderSuggestion}
-                    inputProps={inputProps}
-                    onSuggestionSelected={(e, { suggestion }) => setDestination(suggestion.name)}
-                />
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-1">Trip Duration (Days)</label>
-                <input
-                    type="number"
-                    className="w-full p-2 border border-gray-300 rounded"
-                    value={days}
-                    onChange={e => setDays(e.target.value)}
-                    placeholder="e.g. 5"
-                />
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-1">Budget</label>
-                <div className="grid grid-cols-3 gap-2">
-                    {['Cheap', 'Moderate', 'Luxury'].map(option => (
-                        <button
-                            type="button"
-                            key={option}
-                            onClick={() => setBudget(option)}
-                            className={`p-3 border rounded ${budget === option ? 'bg-blue-100 border-blue-500' : 'border-gray-300'} hover:border-blue-400`}
-                        >
-                            {option}
-                        </button>
-                    ))}
+                {/* Destination Field */}
+                <div className="mb-6 relative">
+                    <label className="block text-gray-700 font-medium mb-2 flex items-center">
+                        <FaPlane className="mr-2 text-blue-500" />
+                        Destination
+                    </label>
+                    <div className="relative">
+                        <FaPlane className="absolute left-3 top-3.5 text-gray-400" />
+                        <Autosuggest
+                            suggestions={suggestions}
+                            onSuggestionsFetchRequested={onSuggestionsFetchRequested}
+                            onSuggestionsClearRequested={() => setSuggestions([])}
+                            getSuggestionValue={getSuggestionValue}
+                            renderSuggestion={renderSuggestion}
+                            inputProps={inputProps}
+                            onSuggestionSelected={(e, { suggestion }) => setDestination(suggestion.name)}
+                            theme={{
+                                container: 'w-full',
+                                suggestionsContainer: 'absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg',
+                                suggestionHighlighted: 'bg-blue-100'
+                            }}
+                        />
+                    </div>
                 </div>
-            </div>
 
-            <div className="mb-6">
-                <label className="block text-gray-700 font-medium mb-1">Traveling With</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {['Just Me', 'A Couple', 'Family', 'Friends'].map(option => (
-                        <button
-                            type="button"
-                            key={option}
-                            onClick={() => setTravelWith(option)}
-                            className={`p-3 border rounded ${travelWith === option ? 'bg-green-100 border-green-500' : 'border-gray-300'} hover:border-green-400`}
-                        >
-                            {option}
-                        </button>
-                    ))}
+                {/* Trip Duration */}
+                <div className="mb-6">
+                    <label className="block text-gray-700 font-medium mb-2 flex items-center">
+                        <FaCalendarAlt className="mr-2 text-blue-500" />
+                        Trip Duration
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="number"
+                            className="w-full p-3 pl-10 border-0 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none"
+                            value={days}
+                            onChange={e => setDays(e.target.value)}
+                            placeholder="⏳ How many days?"
+                            min="1"
+                        />
+                        <FaCalendarAlt className="absolute left-3 top-3.5 text-gray-400" />
+                    </div>
                 </div>
-            </div>
 
-            <div className="text-center">
-                <button
-                    type="submit"
-                    className={`px-6 py-2 rounded-full text-white font-semibold transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
-                    disabled={loading}
-                >
-                    {loading ? 'Generating Trip...' : 'Generate Trip'}
-                </button>
-            </div>
-        </form>
+                {/* Budget Selection */}
+                <div className="mb-6">
+                    <label className="block text-gray-700 font-medium mb-2 flex items-center">
+                        <FaMoneyBillWave className="mr-2 text-blue-500" />
+                        Budget
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                        {budgetOptions.map(option => (
+                            <button
+                                type="button"
+                                key={option.value}
+                                onClick={() => setBudget(option.value)}
+                                className={`flex flex-col items-center p-4 rounded-xl transition-all ${budget === option.value 
+                                    ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-2 border-blue-300 shadow-md' 
+                                    : 'bg-gray-50 border border-gray-200 hover:border-blue-300'}`}
+                            >
+                                <span className="text-2xl mb-1">{option.emoji}</span>
+                                <span>{option.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Traveling With */}
+                <div className="mb-8">
+                    <label className="block text-gray-700 font-medium mb-2 flex items-center">
+                        <FaUsers className="mr-2 text-blue-500" />
+                        Traveling With
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {travelWithOptions.map(option => (
+                            <button
+                                type="button"
+                                key={option.value}
+                                onClick={() => setTravelWith(option.value)}
+                                className={`flex flex-col items-center p-4 rounded-xl transition-all ${travelWith === option.value 
+                                    ? 'bg-gradient-to-br from-green-100 to-blue-100 border-2 border-green-300 shadow-md' 
+                                    : 'bg-gray-50 border border-gray-200 hover:border-green-300'}`}
+                            >
+                                <span className="text-2xl mb-1">{option.emoji}</span>
+                                <span>{option.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="text-center">
+                    <button
+                        type="submit"
+                        className={`px-8 py-3 rounded-full text-white font-bold text-lg transition-all flex items-center justify-center mx-auto ${loading 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <FaSpinner className="animate-spin mr-2" />
+                                Creating Your Trip...
+                            </>
+                        ) : (
+                            '✨ Generate My Trip Plan'
+                        )}
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 }
 
