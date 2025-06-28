@@ -5,6 +5,7 @@ import PreferencesForm from './PreferencesForm';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { FaRobot, FaMapMarkedAlt, FaPlaneDeparture, FaUserCircle, FaPlus, FaHistory, FaSignOutAlt } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 function Landing() {
     const [showPreferencesForm, setShowPreferencesForm] = useState(false);
@@ -64,20 +65,13 @@ function Landing() {
 
     const handleTripHistory = () => {
         setShowProfileDropdown(false);
-        // Navigate to trip history page when implemented
-        alert('Trip history feature coming soon!');
+        navigate('/history'); // Assuming you have a history route
     };
 
-    // Modern Minimalist Logo
-    const PlanTripLogo = () => (
-        <div className="flex items-center">
-            <div className="bg-blue-600 text-white font-bold rounded-lg w-10 h-10 flex items-center justify-center">
-                PT
-            </div>
-            <span className="mx-3 h-6 w-px bg-blue-400"></span>
-            <span className="text-xl font-bold text-gray-800">PlanTrip</span>
-        </div>
-    );
+    const handleProfile = () => {
+        setShowProfileDropdown(false);
+        navigate('/profile'); // Assuming you have a profile route
+    };
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-100 to-blue-50">
@@ -85,7 +79,13 @@ function Landing() {
             <header className="fixed top-0 left-0 w-full z-10 h-16 backdrop-blur-sm border-b border-blue-200/50 bg-white/10">
                 <div className="max-w-7xl mx-auto px-6 h-full flex justify-between items-center">
                     <Link to="/" className="flex items-center space-x-2">
-                        <PlanTripLogo />
+                        <div className="flex items-center">
+                            <div className="bg-blue-600 text-white font-bold rounded-lg w-10 h-10 flex items-center justify-center">
+                                PT
+                            </div>
+                            <span className="mx-3 h-6 w-px bg-blue-400"></span>
+                            <span className="text-xl font-bold text-gray-800">PlanTrip</span>
+                        </div>
                     </Link>
 
                     <div className="flex items-center space-x-4">
@@ -107,12 +107,7 @@ function Landing() {
                                 </button>
 
                                 {showProfileDropdown && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-200"
-                                    >
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-200">
                                         <div className="px-4 py-3 border-b border-gray-100">
                                             <p className="text-sm font-medium text-gray-900">{user.displayName || 'User'}</p>
                                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
@@ -122,14 +117,21 @@ function Landing() {
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                                         >
                                             <FaPlus className="mr-3 text-blue-500" />
-                                            Create Trip
+                                            Create New Trip
                                         </button>
                                         <button
                                             onClick={handleTripHistory}
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                                         >
                                             <FaHistory className="mr-3 text-blue-500" />
-                                            Trip History
+                                            My Trips
+                                        </button>
+                                        <button
+                                            onClick={handleProfile}
+                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                                        >
+                                            <FaUserCircle className="mr-3 text-blue-500" />
+                                            Profile Settings
                                         </button>
                                         <button
                                             onClick={handleLogout}
@@ -138,7 +140,7 @@ function Landing() {
                                             <FaSignOutAlt className="mr-3 text-red-500" />
                                             Logout
                                         </button>
-                                    </motion.div>
+                                    </div>
                                 )}
                             </div>
                         ) : (
