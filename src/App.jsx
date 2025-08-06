@@ -12,7 +12,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/preferences" element={<PreferencesForm/>} />
+        <Route path="/preferences" element={<PreferencesForm />} />
         <Route path="/trip-suggestion" element={<TripSuggestion />} />
       </Routes>
     </Router>
