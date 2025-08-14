@@ -9,57 +9,60 @@ const port = 5000;
 
 app.use(express.json());
 
+// Enhanced image fetching with error handling
 async function fetchImage(keyword) {
     const apiKey = process.env.UNSPLASH_API_KEY;
+    const defaultImage = `https://source.unsplash.com/random/800x600/?${encodeURIComponent(keyword)},city,tourism`;
+    
     if (!apiKey) {
         console.warn("Unsplash API key not found. Using placeholder images.");
-        return `https://source.unsplash.com/random/800x600/?${encodeURIComponent(keyword)}`;
+        return defaultImage;
     }
-    const apiUrl = `https://api.unsplash.com/search/photos?query=${keyword}&client_id=${apiKey}`;
+
     try {
-        const response = await axios.get(apiUrl);
-        const data = response.data;
-        if (data.results && data.results.length > 0) {
-            return data.results[0].urls.regular;
+        const response = await axios.get('https://api.unsplash.com/search/photos', {
+            params: {
+                query: keyword,
+                per_page: 1,
+                orientation: 'landscape'
+            },
+            headers: {
+                'Authorization': `Client-ID ${apiKey}`
+            }
+        });
+
+        if (response.data.results?.length > 0) {
+            return response.data.results[0].urls.regular;
         }
-        return `https://source.unsplash.com/random/800x600/?${encodeURIComponent(keyword)}`;
+        return defaultImage;
     } catch (error) {
-        console.error('Error fetching image:', error);
-        return `https://source.unsplash.com/random/800x600/?${encodeURIComponent(keyword)}`;
+        console.error('Error fetching image:', error.message);
+        return defaultImage;
     }
 }
 
+// Improved markdown parsing
 function parseActivitySection(sectionContent) {
+    if (!sectionContent) return [];
+    
     const activities = [];
-    const activityRegex = /^- \[(.+?)\] - \[(.+?)\]: (.+?)\. (.+?)\./gm;
+    const activityRegex = /^- \[(.+?)\] - \[(.+?)\]: (.+?)(?:\. (.+?))?(?=\n-|$)/gm;
     
     let match;
     while ((match = activityRegex.exec(sectionContent)) !== null) {
         activities.push({
             time: `${match[1]} - ${match[2]}`,
             description: match[3],
-            note: match[4]
+            note: match[4] || ''
         });
     }
     return activities;
 }
 
-function extractDayOverview(dayContent) {
-    const overviewRegex = /\*\*Day Overview:\*\*\n(.+?)\n\n/s;
-    const match = overviewRegex.exec(dayContent);
-    return match ? match[1].trim() : null;
-}
-
-function extractDayNotes(dayContent) {
-    const notesRegex = /\*\*Optional Activities\/Notes:\*\*\n([\s\S]+?)(?=\n\n###|\n\n$)/;
-    const match = notesRegex.exec(dayContent);
-    return match ? match[1].trim() : null;
-}
-
-async function parseTripSummary(markdownText) {
+// Enhanced day parsing
+async function parseTripDays(markdownText) {
     const days = [];
     const dayRegex = /### Day (\d+): (.+?)\n([\s\S]+?)(?=### Day|\n\n$)/g;
-    const summaryRegex = /\*\*Overall Trip Summary:\*\*\n([\s\S]+?)\n\n\*\*Itinerary:\*\*/;
     
     let dayMatch;
     while ((dayMatch = dayRegex.exec(markdownText)) !== null) {
@@ -80,50 +83,35 @@ async function parseTripSummary(markdownText) {
         const afternoonContent = afternoonRegex.exec(dayContent)?.[1] || '';
         const eveningContent = eveningRegex.exec(dayContent)?.[1] || '';
         
-        const activities = {
-            morning: parseActivitySection(morningContent),
-            afternoon: parseActivitySection(afternoonContent),
-            evening: parseActivitySection(eveningContent)
-        };
-        
         const imageUrl = await fetchImage(imageKeyword);
         
         days.push({
             day: dayNumber,
             location,
             overview: extractDayOverview(dayContent),
-            activities,
+            activities: {
+                morning: parseActivitySection(morningContent),
+                afternoon: parseActivitySection(afternoonContent),
+                evening: parseActivitySection(eveningContent)
+            },
             notes: extractDayNotes(dayContent),
             imageUrl
         });
     }
     
-    // Extract overall trip summary
-    const summaryMatch = summaryRegex.exec(markdownText);
-    let summary = {
-        destination: '',
-        duration: `${days.length} days`,
-        budget: '',
-        travelers: ''
-    };
-    
-    if (summaryMatch) {
-        const summaryContent = summaryMatch[1];
-        const destinationMatch = /Destination: (.+)/.exec(summaryContent);
-        const budgetMatch = /Budget: (.+)/.exec(summaryContent);
-        const travelersMatch = /Traveling with: (.+)/.exec(summaryContent);
-        
-        if (destinationMatch) summary.destination = destinationMatch[1];
-        if (budgetMatch) summary.budget = budgetMatch[1];
-        if (travelersMatch) summary.travelers = travelersMatch[1];
-    }
-    
-    // Add summary to first day
-    if (days.length > 0) {
-        days[0].summary = summary;
-    }
-    
     return days;
+}
+
+function extractDayOverview(dayContent) {
+    const overviewRegex = /\*\*Day Overview:\*\*\n(.+?)\n\n/s;
+    const match = overviewRegex.exec(dayContent);
+    return match ? match[1].trim() : null;
+}
+
+function extractDayNotes(dayContent) {
+    const notesRegex = /\*\*Optional Activities\/Notes:\*\*\n([\s\S]+?)(?=\n\n###|\n\n$)/;
+    const match = notesRegex.exec(dayContent);
+    return match ? match[1].trim() : null;
 }
 
 app.post('/generate-trip', async (req, res) => {
@@ -173,7 +161,7 @@ For each day, provide the following structure:
 `;
 
         const response = await axios.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
             {
                 contents: [
                     {
@@ -194,7 +182,7 @@ For each day, provide the following structure:
         );
 
         const tripSummary = response.data.candidates[0].content.parts[0].text;
-        const tripData = await parseTripSummary(tripSummary);
+        const tripData = await parseTripDays(tripSummary);
 
         res.json(tripData);
 

@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FaSpinner } from 'react-icons/fa';
 import Autosuggest from 'react-autosuggest';
 
-const PreferencesForm = ({ onGenerate }) => {
+const PreferencesForm = () => {
+    const navigate = useNavigate();
     const [destination, setDestination] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [days, setDays] = useState('');
@@ -12,7 +14,7 @@ const PreferencesForm = ({ onGenerate }) => {
     const [loading, setLoading] = useState(false);
 
     // API configuration
-    const GEODB_API_KEY = 'bc4914961fmsh2906570d84a8ee3p1b1782jsn42832c37a4ba';
+    const GEODB_API_KEY = 'your-api-key-here';
     const GEODB_HOST = 'wft-geo-db.p.rapidapi.com';
 
     // Form options
@@ -37,9 +39,8 @@ const PreferencesForm = ({ onGenerate }) => {
                 `https://${GEODB_HOST}/v1/geo/cities`,
                 {
                     headers: {
-                        'X-RapidAPI-Key': 'bc4914961fmsh2906570d84a8ee3p1b1782jsn42832c37a4ba',
-                        'X-RapidAPI-Host':  'wft-geo-db.p.rapidapi.com'
-
+                        'X-RapidAPI-Key': GEODB_API_KEY,
+                        'X-RapidAPI-Host': GEODB_HOST
                     },
                     params: {
                         namePrefix: value,
@@ -49,7 +50,7 @@ const PreferencesForm = ({ onGenerate }) => {
                 }
             );
             return response.data.data.map(city => ({
-                name: `${city.city}, ${city.countryCode}`
+                name: `${city.city}, ${city.country}`
             }));
         } catch (error) {
             console.error("GeoDB API Error:", error);
@@ -72,7 +73,7 @@ const PreferencesForm = ({ onGenerate }) => {
     );
 
     const inputProps = {
-        placeholder: 'Select...',
+        placeholder: 'Enter destination...',
         value: destination,
         onChange: (_, { newValue }) => setDestination(newValue),
         className: 'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800'
@@ -81,6 +82,11 @@ const PreferencesForm = ({ onGenerate }) => {
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!destination || !days || !budget || !travelWith) {
+            alert('Please fill all fields');
+            return;
+        }
+        
         setLoading(true);
         try {
             const res = await axios.post('http://localhost:5000/generate-trip', {
@@ -89,12 +95,15 @@ const PreferencesForm = ({ onGenerate }) => {
                 budget,
                 travelWith,
             });
-            onGenerate({
-                destination,
-                days,
-                budget,
-                travelWith,
-                details: res.data
+            
+            navigate('/trip-suggestion', { 
+                state: { 
+                    destination,
+                    days,
+                    budget,
+                    travelWith,
+                    details: res.data 
+                } 
             });
         } catch (error) {
             console.error('Error submitting form:', error);
@@ -105,11 +114,11 @@ const PreferencesForm = ({ onGenerate }) => {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto">
+        <div className="w-full max-w-4xl mx-auto p-4">
             <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2">Tell us your travel preferences 🏕️</h1>
                 <p className="text-lg text-gray-600">
-                    Just provide some basic information, and our trip planner will generate a customized itinerary based on your preferences.
+                    Just provide some basic information, and our trip planner will generate a customized itinerary.
                 </p>
             </div>
 
@@ -183,7 +192,7 @@ const PreferencesForm = ({ onGenerate }) => {
                 {/* Travel With Selection */}
                 <div>
                     <label className="block text-xl font-semibold text-gray-700 mb-3">
-                        Who do you plan on traveling with on your next adventure?
+                        Who do you plan on traveling with?
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {travelWithOptions.map(option => (
