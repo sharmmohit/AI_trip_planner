@@ -3,13 +3,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC1NAelPjsgIJum1tl9iO5Kw7pgI5b43uU",
-  authDomain: "tripplanner-88ede.firebaseapp.com",
-  projectId: "tripplanner-88ede",
-  storageBucket: "tripplanner-88ede.appspot.com",
-  messagingSenderId: "1027232887347",
-  appId: "1:1027232887347:web:00e9e0b700944fa3732946",
-  measurementId: "G-M2W9JY9GKL"
+apiKey: "AIzaSyCe_65BQKaRmPzqjDGeTtA1Uzmjk-bBssM",
+  authDomain: "plantrip-d1288.firebaseapp.com",
+  projectId: "plantrip-d1288",
+  storageBucket: "plantrip-d1288.firebasestorage.app",
+  messagingSenderId: "431776779826",
+  appId: "1:431776779826:web:dfb0dc2e0d165ea7f5b62b",
+  measurementId: "G-N3Q7CN3MFS"
 };
 
 const app = initializeApp(firebaseConfig);
