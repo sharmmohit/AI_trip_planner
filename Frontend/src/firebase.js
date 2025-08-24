@@ -6,7 +6,8 @@ const firebaseConfig = {
 apiKey: "AIzaSyCe_65BQKaRmPzqjDGeTtA1Uzmjk-bBssM",
   authDomain: "plantrip-d1288.firebaseapp.com",
   projectId: "plantrip-d1288",
-  storageBucket: "plantrip-d1288.firebasestorage.app",
+  storageBucket: "plantrip-d1288.appspot.com", // ✅ correct
+
   messagingSenderId: "431776779826",
   appId: "1:431776779826:web:dfb0dc2e0d165ea7f5b62b",
   measurementId: "G-N3Q7CN3MFS"
